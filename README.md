@@ -2,7 +2,14 @@
 Repositorio para entrevista técnica
 
 ## Instalación
-Requiere tener node.js instalado
+Requiere tener node.js instalado. 
+Incluir un archivo .env en la raíz del directorio:
+
+```bash
+API_VERSION = "v2"
+API_FORMAT = "json"
+API_BASE_URL = "https://www.buda.com/api"
+```
 
 ```bash
 npm install
