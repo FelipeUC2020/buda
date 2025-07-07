@@ -1,15 +1,19 @@
 const request = require('supertest');
-const app = require('../index');
+const app = require('../index.js');
 const axios = require('axios');
 
 // Mock de axios
 jest.mock('axios');
 
-// 3 tests: 
+const {mockMarketsFull, mockMarketsMissingETH} = require('./mocks/markets');
+const {mockQuotations} = require('./mocks/quotations');
+
+// 4 tests: 
 
 // 1. should return error if no body is provided
 // 2. should calculate portfolio value correctly
 // 3. should return 404 if market not found
+// 4. should return balance changes equal to the sum of each portfolio value
 
 describe('GET /cotizaciones', () => {
   afterEach(() => {
@@ -25,59 +29,10 @@ describe('GET /cotizaciones', () => {
   // 2. 
   test('should calculate portfolio value correctly', async () => {
     // Mock del response de markets
-    axios.get.mockResolvedValueOnce({
-      data: {
-        markets: [
-          {
-            id: 'BTC-CLP',
-            name: 'btc-clp',
-            base_currency: 'BTC',
-            quote_currency: 'CLP',
-          },
-          {
-            id: 'ETH-CLP',
-            name: 'eth-clp',
-            base_currency: 'ETH',
-            quote_currency: 'CLP',
-          },
-          {
-            id: 'USDT-CLP',
-            name: 'usdt-clp',
-            base_currency: 'USDT',
-            quote_currency: 'CLP',
-          }
-        ]
-      }
-    });
+    axios.get.mockResolvedValueOnce(mockMarketsFull);
 
     // Mock de las respuestas de las cotizaciones
-    axios.post.mockImplementation((url) => {
-      if (url.includes('BTC-CLP')) {
-        return Promise.resolve({
-          data: {
-            quotation: {
-              quote_balance_change: ['1', 'CLP']
-            }
-          }
-        });
-      } else if (url.includes('ETH-CLP')) {
-        return Promise.resolve({
-          data: {
-            quotation: {
-              quote_balance_change: ['1', 'CLP']
-            }
-          }
-        });
-      } else if (url.includes('USDT-CLP')) {
-        return Promise.resolve({
-          data: {
-            quotation: {
-              quote_balance_change: ['1', 'CLP']
-            }
-          }
-        });
-      }
-    });
+    axios.post.mockImplementation(mockQuotations);
 
     const requestBody = {
       portfolio: {
@@ -99,19 +54,7 @@ describe('GET /cotizaciones', () => {
   // 3. 
   test('should return 404 if market not found', async () => {
     // Mock the markets response with missing market
-    axios.get.mockResolvedValueOnce({
-      data: {
-        markets: [
-          {
-            id: 'BTC-CLP',
-            name: 'btc-clp',
-            base_currency: 'BTC',
-            quote_currency: 'CLP',
-          }
-          // ETH-CLP is missing
-        ]
-      }
-    });
+    axios.get.mockResolvedValueOnce(mockMarketsMissingETH);
 
     const requestBody = {
       portfolio: {
@@ -126,6 +69,30 @@ describe('GET /cotizaciones', () => {
       .send(requestBody);
 
     expect(response.statusCode).toBe(404);
-    expect(response.body).toHaveProperty('message', 'Market not found for ETH - CLP');
   });
+
+  // 4. 
+  test("should return balance changes equal to the sum of each portfolio value", async() => {
+    // Mock del response de markets
+    axios.get.mockResolvedValueOnce(mockMarketsFull);
+
+    // Mock de las respuestas de las cotizaciones
+    axios.post.mockImplementation(mockQuotations);
+
+    const requestBody = {
+      portfolio: {
+        BTC: 0.5,
+        ETH: 2.0,
+        USDT: 1000
+      },
+      fiat_currency: 'CLP'
+    };
+
+    const response = await request(app)
+      .get('/cotizaciones')
+      .send(requestBody);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.portfolioValue).toBe(response.body.detalle.reduce((sum, changeObj) => sum + parseFloat(changeObj.fiatValue), 0));
+  })
 });

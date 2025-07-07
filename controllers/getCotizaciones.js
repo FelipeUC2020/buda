@@ -1,7 +1,8 @@
 // ver: https://api.buda.com/?python#rest-api-llamadas-publicas-cotizaciones
 
 const axios = require('axios');
-const buildUrl = require('../helpers/buildUrl');
+const buildUrl = require('../helpers/buildUrl.js');
+
 const marquetsUrl = buildUrl("/markets");
 
 const getCotizaciones = async (req, res) => {
@@ -62,19 +63,23 @@ const getCotizaciones = async (req, res) => {
                 amount: amount
             })
             console.log("response de simulacion: ", response.data)
-            return response.data.quotation.quote_balance_change[0] 
+            return {
+                marketKey,
+                fiatValue: response.data.quotation.quote_balance_change[0]
+            }
         })
 
         // Se espera a que resuelvan en un objeto balanceChanges
         const balanceChanges = await Promise.all(quotationPromises)
         
         // Al final se hace una reduccion para el balance (parece hpc)
-        portfolioValue = balanceChanges.reduce((sum, change) => sum + parseFloat(change), 0)
+        portfolioValue = balanceChanges.reduce((sum, changeObj) => sum + parseFloat(changeObj.fiatValue), 0)
 
         res.status(200).json({
             message: 'Cotizaciones obtenidas',
             portfolioValue,
-            fiat_currency
+            fiat_currency, 
+            detalle: balanceChanges
         })
 
     } catch (error) {

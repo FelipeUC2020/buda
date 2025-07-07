@@ -50,14 +50,29 @@ Este endpoint permite calcular el valor total de un portafolio de criptomonedas 
 ```json
 {
   "message": "Cotizaciones obtenidas",
-  "portfolioValue": 56000000,
-  "fiat_currency": "CLP"
+  "portfolioValue": 56000000.0,
+  "fiat_currency": "CLP", 
+  "detalle": [
+    {
+      "marketKey": "BTC-CLP",
+      "fiatValue": 28000000.0
+    },
+    {
+      "marketKey": "ETH-CLP",
+      "fiatValue": 28000000.0
+    },
+    {
+      "marketKey": "USDT-CLP",
+      "fiatValue": 1000.0
+    }
+  ]
 }
 ```
 
 - `message`: Mensaje de confirmación.
 - `portfolioValue`: Valor total del portafolio en la moneda fiduciaria especificada.
 - `fiat_currency`: Moneda fiduciaria utilizada para la cotización.
+- `detalle`: Array de objetos que contiene el valor de cada criptomoneda en la moneda fiduciaria, según el monto de la cotización.
 
 #### Errores
 - **404**: Si no se encuentra un mercado para alguna de las criptomonedas en la moneda fiduciaria especificada.
